@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tech Carousel Draft Generator</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,400&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-hover: #f1f5f9;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #0f172a;
+      --accent-hover: #334155;
+      --danger: #ef4444;
+      --success: #10b981;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font-main: 'Inter', system-ui, sans-serif;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-serif: 'Merriweather', serif;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ========== HEADER ========== */
+    header {
+      text-align: center;
+      padding: 3rem 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 3vw, 2rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ========== SEARCH ========== */
+    .search-section {
+      display: flex;
+      justify-content: center;
+      padding: 1.5rem 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .search-wrapper {
+      display: flex;
+      width: 100%;
+      max-width: 600px;
+      gap: 0.5rem;
+      align-items: stretch;
+    }
+    .search-wrapper input {
+      flex: 1;
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-wrapper input:focus {
+      border-color: var(--text);
+      box-shadow: 0 0 0 1px var(--text);
+      background: var(--surface);
+    }
+    .search-wrapper input::placeholder { color: #94a3b8; }
+    
+    button {
+      cursor: pointer;
+      font-family: var(--font-main);
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      padding: 0.8rem 1.5rem;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-outline {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.85rem;
+    }
+    .btn-outline:hover:not(:disabled) { border-color: var(--border-hover); background: var(--bg); }
+    .btn-outline:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-danger {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--danger);
+      font-size: 0.85rem;
+    }
+    .btn-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fca5a5; }
+
+    /* ========== STATUS ========== */
+    .status-bar {
+      text-align: center;
+      padding: 0.8rem 1rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      min-height: 2.5rem;
+      font-weight: 500;
+    }
+    .status-bar.error { color: var(--danger); }
+    .status-bar.success { color: var(--success); }
+    .status-bar.loading { color: var(--accent); }
+
+    /* ========== MAIN ========== */
+    main {
+      padding: 2rem 1rem 5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ========== NEWS CARDS ========== */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .news-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .news-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .news-card .thumb {
+      aspect-ratio: 16 / 9;
+      width: 100%;
+      background: var(--bg);
+      overflow: hidden;
+      position: relative;
+      border-bottom: 1px solid var(--border);
+    }
+    .news-card .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .news-card .thumb .thumb-fallback {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      color: #cbd5e1;
+    }
+    .news-card .thumb .source-pill {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      background: var(--surface);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .news-card .card-body {
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 1;
+    }
+    .news-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      letter-spacing: -0.01em;
+    }
+    .news-card .excerpt {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1;
+      line-height: 1.6;
+    }
+    .news-card .card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    
+    .source-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .source-link:hover {
+      color: var(--text);
+      text-decoration: underline;
+    }
+
+    .news-card .btn-generate {
+      width: 100%;
+      padding: 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .news-card .btn-generate:hover:not(:disabled) {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* ========== EMPTY / SKELETON ========== */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state h2 {
+      font-family: var(--font-serif);
+      font-size: 1.5rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .skeleton-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .skeleton-card {
+      height: 340px;
+      border-radius: var(--radius);
+      background: linear-gradient(90deg, var(--surface) 25%, var(--bg) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border: 1px solid var(--border);
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ========== DRAFT SECTION ========== */
+    .draft-section {
+      display: none;
+      margin-top: 3rem;
+    }
+    .draft-section.visible { display: block; }
+
+    .draft-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .draft-title-block { flex: 1; min-width: 220px; }
+    .draft-title-block h2 {
+      font-family: var(--font-serif);
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .draft-title-block h2 span { font-style: italic; }
+    
+    .draft-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      align-items: center;
+    }
+    .draft-meta .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    
+    .draft-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .draft-actions .btn-primary { padding: 0.6rem 1rem; font-size: 0.85rem; }
+
+    /* ========== SLIDES GRID ========== */
+    .slides-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      justify-items: center;
+    }
+    @media (min-width: 720px) { .slides-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1100px) { .slides-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .slide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 100%;
+      max-width: 480px;
+      transition: border-color 0.2s;
+    }
+    .slide-card:hover { border-color: var(--border-hover); }
+    
+    .slide-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .slide-card-header .num-badge {
+      font-family: var(--font-main);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .slide-card-header .card-actions { display: flex; gap: 0.5rem; }
+    
+    .slide-card-header .card-actions button {
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .slide-card-header .card-actions button:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--border-hover);
+    }
+    .slide-card-header .card-actions .btn-slide-dl {
+      background: var(--text);
+      color: #fff;
+      border-color: var(--text);
+    }
+    .slide-card-header .card-actions .btn-slide-dl:hover {
+      background: #334155;
+      color: #fff;
+    }
+
+    /* ========== SLIDE FRAME & NATIVE DESIGN ========== */
+    .slide-frame {
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--border);
+      aspect-ratio: 4 / 5;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px;
+      height: 1350px;
+      transform-origin: top left;
+      overflow: hidden;
+      font-family: var(--font-main);
+      background: #fff;
+      color: #111;
+      display: flex;
+      flex-direction: column;
+      padding: 60px 70px;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+
+    .slide .bg-img {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;
+      opacity: 0.15; filter: grayscale(100%) contrast(120%);
+    }
+    .slide .bg-fallback {
+      position: absolute; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-serif); font-size: 200px; color: #f1f5f9;
+    }
+    
+    .slide .bg-overlay {
+      position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.95) 40%, #ffffff 100%);
+    }
+    .slide-content .bg-overlay {
+      background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, #ffffff 100%);
+    }
+    .slide-closing .bg-overlay {
+      background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, #ffffff 100%);
+    }
+
+    .slide > *:not(.bg-img):not(.bg-overlay):not(.bg-fallback) {
+      position: relative; z-index: 2;
+    }
+
+    .slide .top-bar {
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+      margin-bottom: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;
+    }
+    .slide .brand-badge {
+      font-size: 16px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: #111;
+    }
+    .slide .slide-num {
+      font-family: var(--font-display); font-size: 16px; font-weight: 600; color: #64748b;
+    }
+    .slide .footer-bar {
+      display: flex; justify-content: space-between; align-items: center; gap: 20px;
+      padding-top: 20px; border-top: 1px solid #e2e8f0; flex-shrink: 0; margin-top: auto;
+    }
+    .slide .footer-source {
+      font-size: 15px; font-weight: 500; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    
+    .slide .category-pill {
+      font-size: 14px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+      color: #111; display: inline-flex; align-items: center; gap: 10px;
+    }
+    .slide .category-pill::before {
+      content: ''; display: block; width: 12px; height: 12px; background: var(--cat-color, #111); border-radius: 50%;
+    }
+
+    /* Slide 1: Cover */
+    .slide-cover .cover-content {
+      flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 30px;
+    }
+    .slide-cover .hook-title {
+      font-family: var(--font-serif); font-weight: 900; line-height: 1.15; letter-spacing: -0.02em; color: #111;
+      word-wrap: break-word; overflow-wrap: break-word;
+    }
+    .slide-cover .hook-title.size-normal { font-size: 78px; }
+    .slide-cover .hook-title.size-long { font-size: 64px; }
+    .slide-cover .hook-title.size-very-long { font-size: 52px; }
+    
+    .slide-cover .cover-subtitle {
+      font-family: var(--font-main); font-size: 24px; font-weight: 400; line-height: 1.6; color: #475569;
+      padding-left: 24px; border-left: 3px solid #111;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .slide-cover .swipe-cta {
+      font-size: 14px; font-weight: 700; color: #111; text-transform: uppercase; letter-spacing: 0.15em;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Slide 2..N: Content */
+    .slide-content .big-number {
+      position: absolute; top: 150px; right: 60px; font-family: var(--font-display);
+      font-size: 300px; font-weight: 700; line-height: 1; color: #f1f5f9; z-index: 1; pointer-events: none;
+    }
+    .slide-content .content-area {
+      flex-grow: 1; display: flex; flex-direction: column; justify-content: center; gap: 24px; padding: 20px 0;
+    }
+    .slide-content .content-label {
+      font-size: 14px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: #111;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .slide-content .content-label::before {
+      content: ''; width: 30px; height: 2px; background: #111; border-radius: 2px;
+    }
+    .slide-content .content-body {
+      font-family: var(--font-serif); font-size: 38px; font-weight: 400; line-height: 1.6; color: #1e293b;
+      letter-spacing: -0.01em; word-wrap: break-word;
+    }
+    .slide-content .content-body.dense { font-size: 32px; }
+    .slide-content .content-body.very-dense { font-size: 26px; line-height: 1.7; }
+
+    .slide .pag-dots { display: flex; gap: 8px; align-items: center; }
+    .slide .pag-dots .pdot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+    .slide .pag-dots .pdot.active { background: #111; }
+
+    /* Slide Last: Closing */
+    .slide-closing .closing-content {
+      flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 30px;
+    }
+    .slide-closing .closing-title {
+      font-family: var(--font-serif); font-size: 64px; font-weight: 900; line-height: 1.15; color: #111;
+      letter-spacing: -0.02em;
+    }
+    .slide-closing .closing-text {
+      font-family: var(--font-main); font-size: 24px; font-weight: 400; color: #475569; line-height: 1.6;
+      display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; max-width: 90%;
+    }
+    .slide-closing .cta-button {
+      display: inline-flex; align-items: center; padding: 20px 40px; border-radius: 4px;
+      background: #111; color: #fff; font-size: 20px; font-weight: 600; margin-top: 10px;
+      text-transform: uppercase; letter-spacing: 0.1em; text-decoration: none;
+      transition: background 0.2s;
+    }
+    .slide-closing .cta-button:hover { background: #334155; }
+
+    /* Loading & Overlay */
+    .processing-card {
+      grid-column: 1 / -1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 4rem 1.5rem; display: flex; flex-direction: column;
+      align-items: center; gap: 1.5rem; max-width: 480px; margin: 0 auto; width: 100%;
+    }
+    .loading-spinner {
+      width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--text);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .export-overlay {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .export-overlay.show { opacity: 1; pointer-events: all; }
+    .export-modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 2.5rem 2rem; max-width: 360px; width: 90%; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; gap: 1.2rem;
+    }
+    .export-modal h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--text); }
+    .export-modal .progress-bar { width: 100%; height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; }
+    .export-modal .progress-bar .fill { height: 100%; width: 0%; background: var(--text); transition: width 0.3s; }
+
+    .toast {
+      position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: var(--text); color: #fff; padding: 0.8rem 1.5rem; border-radius: var(--radius-sm);
+      font-weight: 500; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2000; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--danger); }
+
+    #exportStage { position: fixed; left: -9999px; top: 0; width: 1080px; height: 1350px; overflow: hidden; z-index: -1; }
+
+    @media (max-width: 680px) {
+      .search-wrapper { flex-direction: column; }
+      .draft-header { flex-direction: column; align-items: stretch; }
+      .draft-actions { justify-content: stretch; }
+      .draft-actions button { flex: 1; justify-content: center; }
+      .slide-card { max-width: 100%; }
+    }
+
+    .slide-card.editing .slide-frame { outline: 2px solid var(--text); }
+    .slide-card.editing [contenteditable="true"] { outline: 1px dashed var(--text); background: var(--bg); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Tech Carousel Draft</h1>
+    <p>Cari berita, pilih satu, dan dapatkan draft slide profesional berbahasa Indonesia yang siap diunduh HD.</p>
+  </header>
+
+  <div class="search-section">
+    <div class="search-wrapper">
+      <input type="text" id="searchInput" placeholder="Cari berita teknologi... (contoh: AI, chip, cyber)" autocomplete="off" />
+      <button id="searchBtn" class="btn-primary" type="button">Cari Berita</button>
+    </div>
+  </div>
+
+  <div class="status-bar" id="statusBar" role="status" aria-live="polite"></div>
+
+  <main>
+    <section id="newsSection">
+      <div id="newsContainer">
+        <div class="empty-state" id="emptyState">
+          <h2>Mulai Pencarian</h2>
+          <p>Ketik kata kunci dan tekan Cari Berita untuk melihat hasil terbaru.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="draft-section" id="draftSection">
+      <div class="draft-header">
+        <div class="draft-title-block">
+          <h2>Draft Slide: <span id="sourceArticleTitle">—</span></h2>
+          <div class="draft-meta" id="draftMeta">
+            <span class="meta-pill" id="metaSlideCount">0 slide</span>
+            <span class="meta-pill" id="metaCategory">—</span>
+            <span class="meta-pill" id="metaDate">—</span>
+            <a href="#" id="metaSourceLink" class="meta-pill source-link" target="_blank" rel="noopener noreferrer" style="display:none;">Lihat Sumber Asli ↗</a>
+          </div>
+        </div>
+        <div class="draft-actions">
+          <button id="downloadAllBtn" class="btn-primary" type="button" disabled>Download Semua (ZIP)</button>
+          <button id="editBtn" class="btn-outline" type="button">Edit Teks</button>
+          <button id="resetBtn" class="btn-danger" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div class="slides-grid" id="slidesGrid"></div>
+    </section>
+  </main>
+
+  <div id="exportStage"></div>
+
+  <div class="export-overlay" id="exportOverlay">
+    <div class="export-modal">
+      <div class="loading-spinner" id="exportSpinner"></div>
+      <h3 id="exportTitle">Menyiapkan HD...</h3>
+      <div class="progress-bar"><div class="fill" id="exportProgress"></div></div>
+      <div id="exportLabel" style="font-size:0.85rem; color:var(--text-muted);">0 / 0</div>
+      <button class="btn-outline" id="cancelExportBtn" style="margin-top:10px; border-color:var(--danger); color:var(--danger);">Batalkan</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ========== KONFIGURASI ==========
+    const RSS_FEEDS = [
+      { name: 'TechCrunch',   url: 'https://techcrunch.com/feed/' },
+      { name: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/index' },
+      { name: 'The Verge',    url: 'https://www.theverge.com/rss/index.xml' }
+    ];
+    const RSS2JSON_ENDPOINT = 'https://api.rss2json.com/v1/api.json?rss_url=';
+    const IMG_PROXY = 'https://images.weserv.nl/?url=';
+    const SCRAPE_PROXY = 'https://api.allorigins.win/raw?url=';
+    
+    const MIN_CONTENT_SLIDES = 2;
+    const MAX_CONTENT_SLIDES = 8;
+    const TARGET_WORDS_PER_SLIDE = 60;
+    const EXPORT_SCALE = 2; 
+
+    // ========== KATEGORI ==========
+    const CATEGORIES = [
+      { key: 'ai', name: 'AI & ML', color: '#3b82f6', keywords: ['artificial intelligence', 'machine learning', ' ai ', 'ai-', 'llm', 'gpt', 'chatgpt', 'openai', 'anthropic', 'claude', 'gemini', 'neural', 'deep learning'] },
+      { key: 'chip', name: 'Chip & Hardware', color: '#0ea5e9', keywords: ['chip', 'nvidia', 'amd', 'intel', 'tsmc', 'semiconductor', ' gpu', ' cpu', 'processor', 'silicon', 'microchip', 'arm '] },
+      { key: 'startup', name: 'Startup & Bisnis', color: '#10b981', keywords: ['startup', 'funding', 'investor', ' ipo', 'unicorn', 'raises', 'series a', 'series b', 'valuation', 'acquisition'] },
+      { key: 'security', name: 'Keamanan Siber', color: '#ef4444', keywords: ['hack', 'cyber', 'breach', 'ransomware', 'malware', 'phishing', 'security', 'vulnerability', 'zero-day'] },
+      { key: 'bigtech', name: 'Big Tech', color: '#6366f1', keywords: ['apple', 'google', 'microsoft', 'meta ', 'amazon', 'samsung', 'tesla'] },
+      { key: 'robotics', name: 'Robotik', color: '#f59e0b', keywords: ['robot', 'drone', 'autonomous', 'robotik', 'humanoid'] },
+      { key: 'energy', name: 'Energi & EV', color: '#84cc16', keywords: ['battery', ' ev ', 'electric vehicle', 'energy', 'solar', 'baterai', 'charging'] },
+      { key: 'social', name: 'Media Sosial', color: '#ec4899', keywords: ['facebook', 'instagram', 'tiktok', 'twitter', 'social media', 'threads', ' x.com', 'youtube'] },
+      { key: 'gaming', name: 'Gaming', color: '#8b5cf6', keywords: ['game', 'gaming', 'playstation', 'xbox', 'nintendo', 'steam', 'esports'] }
+    ];
+    const DEFAULT_CATEGORY = { key: 'default', name: 'Teknologi', color: '#64748b' };
+    
+    const HOOK_TEMPLATES = {
+      ai: ['AI Bikin Geger: {t}', 'Revolusi AI: {t}', 'Masa Depan Dimulai: {t}', 'Kecerdasan Buatan: {t}'],
+      chip: ['Perang Chip Memanas: {t}', 'Dunia Hardware Bergetar: {t}', 'Terobosan Chip: {t}'],
+      startup: ['Startup yang Wajib Kamu Tahu: {t}', 'Breaking Startup: {t}', 'Pendanaan Besar: {t}'],
+      security: ['Awas: {t}', 'Ancaman Siber: {t}', 'Kebocoran Data: {t}'],
+      bigtech: ['Tech Raksasa Bergerak: {t}', 'Update Besar: {t}', 'Langkah Berani: {t}'],
+      robotics: ['Masa Depan Tiba: {t}', 'Robotik Makin Canggih: {t}', 'Otomasi: {t}'],
+      energy: ['Masa Depan Energi: {t}', 'Terobosan Baru: {t}', 'Era Baru: {t}'],
+      social: ['Viral di Medsos: {t}', 'Update Platform: {t}', 'Fitur Baru: {t}'],
+      gaming: ['Gamers Wajib Tahu: {t}', 'Dunia Gaming: {t}', 'Update Game: {t}'],
+      default: ['Wajib Tahu: {t}', 'Breaking: {t}', 'Baru Banget: {t}', 'Update Teknologi: {t}']
+    };
+
+    // ========== STATE ==========
+    let currentArticles = [], activeArticle = null, slides = [], activeCategory = DEFAULT_CATEGORY;
+    let isEditing = false, isExporting = false, cancelExport = false;
+    const translationCache = new Map();
+
+    // ========== DOM ==========
+    const $ = id => document.getElementById(id);
+    const searchInput = $('searchInput'), searchBtn = $('searchBtn'), statusBar = $('statusBar');
+    const newsContainer = $('newsContainer'), draftSection = $('draftSection'), slidesGrid = $('slidesGrid');
+    const sourceArticleTitle = $('sourceArticleTitle'), metaSlideCount = $('metaSlideCount');
+    const metaCategory = $('metaCategory'), metaDate = $('metaDate'), metaSourceLink = $('metaSourceLink');
+    const editBtn = $('editBtn'), resetBtn = $('resetBtn'), downloadAllBtn = $('downloadAllBtn');
+    const exportStage = $('exportStage'), exportOverlay = $('exportOverlay'), exportTitle = $('exportTitle');
+    const exportProgress = $('exportProgress'), exportLabel = $('exportLabel'), cancelExportBtn = $('cancelExportBtn');
+    const toast = $('toast');
+
+    // ========== UTILITY ==========
+    function setStatus(msg, type = '') { statusBar.textContent = msg; statusBar.className = 'status-bar' + (type ? ' ' + type : ''); }
+    function stripHtml(html) { if (!html) return ''; const tmp = document.createElement('div'); tmp.innerHTML = html; return (tmp.textContent || tmp.innerText || '').trim(); }
+    function escapeHtml(str) { if (str === null || str === undefined) return ''; const div = document.createElement('div'); div.textContent = String(str); return div.innerHTML; }
+    function formatDate(d) { if (!d) return '—'; const date = new Date(d); return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); }
+    function shorten(text, max) { const t = stripHtml(text || ''); return t.length <= max ? t : t.slice(0, max).trim() + '…'; }
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function showToast(msg, type = 'success') {
+      toast.textContent = msg; toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+      toast.classList.add('show'); clearTimeout(showToast._t); showToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+    function proxifyImage(url) { if (!url) return ''; try { return IMG_PROXY + encodeURIComponent(url.replace(/^https?:\/\//, '')); } catch { return url; } }
+    function extractImage(item) { if (item.thumbnail) return item.thumbnail; if (item.enclosure && item.enclosure.link && /image/i.test(item.enclosure.type || '')) return item.enclosure.link; const m = /<img[^>]+src=["']([^"']+)["']/i.exec(item.content || item.description || ''); return m ? m[1] : null; }
+    function hostFromUrl(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
+    
+    function detectCategory(text) {
+      const lower = ' ' + text.toLowerCase() + ' ';
+      for (const cat of CATEGORIES) { for (const kw of cat.keywords) { if (lower.includes(kw)) return cat; } }
+      return DEFAULT_CATEGORY;
+    }
+
+    function cleanContentText(text) {
+      if (!text) return '';
+      let cleaned = stripHtml(text);
+      cleaned = cleaned.replace(/\[\s*\.\.\.\s*\]/gi, '');
+      cleaned = cleaned.replace(/\[\s*…\s*\]/gi, '');
+      cleaned = cleaned.replace(/Read More/gi, '');
+      cleaned = cleaned.replace(/The post .* appeared first on .*/gi, '');
+      cleaned = cleaned.replace(/Continue reading/gi, '');
+      return cleaned.replace(/\n\s*\n/g, '\n\n').replace(/[ \t]+/g, ' ').trim();
+    }
+
+    // ========== SCRAPING ARTIKEL LENGKAP ==========
+    async function fetchFullArticle(url, rssContent) {
+      let content = cleanContentText(rssContent);
+      if (content.length < 800 || /\[\s*\.\.\.\s*\]|appeared first on|Read More/i.test(rssContent)) {
+        try {
+          const proxyUrl = SCRAPE_PROXY + encodeURIComponent(url);
+          const res = await fetch(proxyUrl);
+          if (res.ok) {
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            let articleBody = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+            let paragraphs = Array.from(articleBody.querySelectorAll('p'));
+            
+            let fullText = paragraphs
+              .map(p => cleanContentText(p.textContent))
+              .filter(t => t.length > 40 && !t.includes('Subscribe') && !t.includes('Sign up') && !t.includes('newsletter'))
+              .join('\n\n');
+              
+            if (fullText.length > content.length) return fullText;
+          }
+        } catch (e) {}
+      }
+      return content;
+    }
+
+    // ========== TRANSLATE ==========
+    async function translateChunk(text) {
+      if (!text || !text.trim()) return '';
+      const key = text.trim();
+      if (translationCache.has(key)) return translationCache.get(key);
+      try {
+        const res = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q=' + encodeURIComponent(key));
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data[0] && Array.isArray(data[0])) {
+            const out = data[0].map(x => x[0]).filter(Boolean).join('');
+            if (out) { translationCache.set(key, out); return out; }
+          }
+        }
+      } catch (e) {}
+      translationCache.set(key, key); return key;
+    }
+
+    function splitTextChunks(text, maxLen) {
+      if (text.length <= maxLen) return [text];
+      const sentences = text.split(/(?<=[.!?])\s+/); let cur = ''; const chunks = [];
+      for (const s of sentences) {
+        if ((cur + ' ' + s).length > maxLen && cur) { chunks.push(cur.trim()); cur = s; }
+        else { cur = cur ? cur + ' ' + s : s; }
+      }
+      if (cur.trim()) chunks.push(cur.trim());
+      const out = [];
+      for (const c of chunks) {
+        if (c.length <= maxLen) out.push(c);
+        else for (let i = 0; i < c.length; i += maxLen) out.push(c.slice(i, i + maxLen));
+      }
+      return out;
+    }
+
+    async function translateFull(text, onProgress) {
+      if (!text || !text.trim()) return '';
+      const chunks = splitTextChunks(text.trim(), 450); const results = [];
+      for (let i = 0; i < chunks.length; i++) {
+        if (onProgress) onProgress(i + 1, chunks.length);
+        results.push(await translateChunk(chunks[i]));
+      }
+      return results.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
+    // ========== RSS FETCH ==========
+    async function fetchFeed(feed) {
+      const res = await fetch(RSS2JSON_ENDPOINT + encodeURIComponent(feed.url));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      if (data.status !== 'ok' || !Array.isArray(data.items)) throw new Error('Invalid format');
+      return data.items.map(it => ({
+        title: stripHtml(it.title || ''), description: stripHtml(it.description || ''), content: stripHtml(it.content || ''),
+        link: it.link || '#', pubDate: it.pubDate || '', source: feed.name, image: extractImage(it)
+      }));
+    }
+
+    // ========== SEARCH ==========
+    async function performSearch() {
+      const q = searchInput.value.trim();
+      if (!q) { setStatus('Masukkan kata kunci terlebih dahulu.', 'error'); searchInput.focus(); return; }
+      searchBtn.disabled = true; setStatus('Mengambil berita teknologi...', '');
+      newsContainer.innerHTML = '<div class="skeleton-grid">' + '<div class="skeleton-card"></div>'.repeat(6) + '</div>';
+
+      try {
+        const results = await Promise.allSettled(RSS_FEEDS.map(fetchFeed));
+        const all = []; const errs = [];
+        results.forEach((r, i) => { if (r.status === 'fulfilled') all.push(...r.value); else errs.push(RSS_FEEDS[i].name); });
+
+        const query = q.toLowerCase();
+        const filtered = all.filter(a => a.title.toLowerCase().includes(query) || a.description.toLowerCase().includes(query));
+        filtered.sort((a, b) => (new Date(b.pubDate).getTime() || 0) - (new Date(a.pubDate).getTime() || 0));
+
+        if (filtered.length === 0) {
+          newsContainer.innerHTML = `<div class="empty-state"><h2>Tidak Ditemukan</h2><p>Tidak ada berita cocok untuk "${escapeHtml(q)}". Coba kata kunci lain.</p></div>`;
+          setStatus('Tidak ada hasil.', ''); return;
+        }
+
+        currentArticles = filtered;
+        renderNewsCards(filtered);
+        setStatus(`Ditemukan ${filtered.length} berita. Pilih 1 untuk dibuat draft.`, 'success');
+      } catch (e) {
+        newsContainer.innerHTML = `<div class="empty-state"><h2>Error</h2><p>Gagal mengambil berita. Periksa koneksi internet.</p></div>`;
+        setStatus('Terjadi kesalahan.', 'error');
+      } finally { searchBtn.disabled = false; }
+    }
+
+    function renderNewsCards(articles) {
+      newsContainer.innerHTML = ''; const grid = document.createElement('div'); grid.className = 'news-grid';
+      articles.forEach(article => {
+        const cat = detectCategory(article.title + ' ' + article.description);
+        const card = document.createElement('div'); card.className = 'news-card';
+        const thumbImg = article.image ? proxifyImage(article.image) : '';
+        const thumbHtml = thumbImg ? `<img src="${escapeHtml(thumbImg)}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="thumb-fallback" style="display:none;">${escapeHtml(cat.name)}</div>` : `<div class="thumb-fallback">${escapeHtml(cat.name)}</div>`;
+        
+        card.innerHTML = `
+          <div class="thumb">${thumbHtml}<div class="source-pill">${escapeHtml(article.source)}</div></div>
+          <div class="card-body">
+            <h3>${escapeHtml(article.title)}</h3>
+            <p class="excerpt">${escapeHtml(shorten(article.description || '', 160))}</p>
+            <div class="card-meta">
+              <span>${formatDate(article.pubDate)}</span>
+              <a href="${escapeHtml(article.link)}" target="_blank" rel="noopener noreferrer" class="source-link">Sumber Asli ↗</a>
+            </div>
+            <button type="button" class="btn-generate">Buat Draft Carousel</button>
+          </div>`;
+        card.querySelector('.btn-generate').addEventListener('click', (ev) => generateDraft(article, ev.currentTarget));
+        grid.appendChild(card);
+      });
+      newsContainer.appendChild(grid);
+    }
+
+    // ========== GENERATE DRAFT ==========
+    async function generateDraft(article, btn) {
+      activeArticle = article;
+      if (btn) { btn.disabled = true; btn.textContent = 'Memproses...'; }
+      draftSection.classList.add('visible');
+      sourceArticleTitle.textContent = 'Memproses...'; metaSlideCount.textContent = '— slide'; metaCategory.textContent = '—'; metaDate.textContent = '—';
+      
+      metaSourceLink.href = article.link;
+      metaSourceLink.style.display = 'inline-flex';
+      
+      downloadAllBtn.disabled = true; editBtn.disabled = true; resetBtn.disabled = true;
+      isEditing = false; editBtn.classList.remove('active'); editBtn.textContent = 'Edit Teks';
+      
+      slidesGrid.innerHTML = `<div class="processing-card"><div class="loading-spinner"></div><div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;color:var(--text);">Menyusun Draft</div><div style="color:var(--text-muted);font-size:0.9rem;">Mengambil teks lengkap artikel</div><div id="loadingStep" style="color:var(--text);font-size:0.8rem;font-weight:600;">Menghubungi server asal</div></div>`;
+      setStatus('Mengambil teks lengkap & menerjemahkan...', 'loading');
+
+      const loadingStep = document.getElementById('loadingStep');
+      try {
+        const cat = detectCategory(article.title + ' ' + article.description + ' ' + article.content);
+        activeCategory = cat;
+
+        if (loadingStep) loadingStep.textContent = 'Mengambil artikel penuh...';
+        const rawContent = await fetchFullArticle(article.link, article.content || article.description);
+
+        if (loadingStep) loadingStep.textContent = 'Menerjemahkan judul...';
+        const idTitle = await translateFull(article.title);
+        
+        if (loadingStep) loadingStep.textContent = 'Menerjemahkan isi...';
+        const idContent = await translateFull(rawContent, (d, t) => { if (loadingStep) loadingStep.textContent = `Menerjemahkan... (${d}/${t})`; });
+
+        if (loadingStep) loadingStep.textContent = 'Menyusun paragraf...';
+        let paragraphs = splitIntoParagraphs(idContent);
+        paragraphs = enforceSlideCount(paragraphs);
+        
+        const hook = generateHook(idTitle, article.title, cat);
+
+        const totalSlides = paragraphs.length + 2;
+        slides = [];
+
+        slides.push({ type: 'cover', hook, subtitle: shorten(idTitle, 120), source: article.source, date: formatDate(article.pubDate), image: article.image, category: cat, number: 1, total: totalSlides });
+        paragraphs.forEach((p, i) => slides.push({ type: 'content', body: p, label: `Poin ${i + 1}`, number: i + 2, total: totalSlides, image: article.image, category: cat, source: article.source, sourceUrl: hostFromUrl(article.link) }));
+        slides.push({ type: 'closing', source: article.source, sourceUrl: hostFromUrl(article.link), link: article.link, image: article.image, category: cat, number: totalSlides, total: totalSlides, closingTitle: 'Baca Selengkapnya', closingText: `Dapatkan detail penuh dan analisis dari artikel asli di ${article.source}.` });
+
+        sourceArticleTitle.textContent = shorten(hook, 60);
+        metaSlideCount.textContent = `${totalSlides} Slide`;
+        metaCategory.textContent = cat.name;
+        metaDate.textContent = formatDate(article.pubDate);
+
+        renderSlides();
+        setStatus(`Selesai! ${totalSlides} draft slide siap diunduh.`, 'success');
+        downloadAllBtn.disabled = false; editBtn.disabled = false; resetBtn.disabled = false;
+
+        setTimeout(() => draftSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      } catch (err) {
+        console.error(err);
+        slidesGrid.innerHTML = `<div class="processing-card"><div style="font-family:var(--font-display);font-size:1.1rem;font-weight:600;color:var(--danger);">Gagal Memproses</div><div style="color:var(--text-muted);font-size:0.9rem;">Coba lagi atau gunakan berita lain.</div></div>`;
+        setStatus('Gagal memproses.', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Buat Draft Carousel'; }
+      }
+    }
+
+    // ========== PARAGRAPH LOGIC ==========
+    function splitIntoParagraphs(text) {
+      if (!text || !text.trim()) return ['Belum ada detail konten untuk berita ini.'];
+      let explicit = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 20);
+      if (explicit.length <= 1) {
+        const sentences = text.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 15);
+        if (sentences.length === 0) return [text];
+        const paragraphs = []; let cur = [], wc = 0;
+        for (const s of sentences) {
+          const w = s.split(/\s+/).length;
+          if (wc + w > TARGET_WORDS_PER_SLIDE && cur.length > 0) { paragraphs.push(cur.join(' ')); cur = [s]; wc = w; }
+          else { cur.push(s); wc += w; }
+        }
+        if (cur.length) paragraphs.push(cur.join(' '));
+        return paragraphs;
+      }
+      return mergeShortParagraphs(explicit);
+    }
+
+    function mergeShortParagraphs(paras) {
+      const MIN_WORDS = 25; const merged = []; let buffer = '';
+      for (const p of paras) {
+        if (buffer && (buffer + ' ' + p).split(/\s+/).length <= TARGET_WORDS_PER_SLIDE * 1.5) buffer = buffer + ' ' + p;
+        else { if (buffer) merged.push(buffer); buffer = p; }
+      }
+      if (buffer) merged.push(buffer);
+      return merged.filter(p => p.split(/\s+/).length >= MIN_WORDS || merged.length < 2);
+    }
+
+    function enforceSlideCount(paras) {
+      while (paras.length < MIN_CONTENT_SLIDES) {
+        let maxI = 0; for (let i = 1; i < paras.length; i++) if (paras[i].length > paras[maxI].length) maxI = i;
+        const p = paras[maxI]; const sents = p.split(/(?<=[.!?])\s+/);
+        if (sents.length < 2) break; const mid = Math.ceil(sents.length / 2);
+        paras.splice(maxI, 1, sents.slice(0, mid).join(' '), sents.slice(mid).join(' '));
+      }
+      while (paras.length > MAX_CONTENT_SLIDES) {
+        let bestI = 0, bestLen = Infinity;
+        for (let i = 0; i < paras.length - 1; i++) { const len = paras[i].length + paras[i + 1].length; if (len < bestLen) { bestLen = len; bestI = i; } }
+        paras.splice(bestI, 2, paras[bestI] + ' ' + paras[bestI + 1]);
+      }
+      return paras;
+    }
+
+    function generateHook(idTitle, origTitle, cat) {
+      const title = (idTitle || origTitle || 'Berita Teknologi').trim();
+      const short = shorten(title, 75);
+      const templates = HOOK_TEMPLATES[cat.key] || HOOK_TEMPLATES.default;
+      const idx = (title.length + cat.key.length) % templates.length;
+      return templates[idx].replace('{t}', short);
+    }
+
+    // ========== RENDER SLIDES ==========
+    function renderSlides() {
+      slidesGrid.innerHTML = '';
+      slides.forEach((slide, idx) => {
+        const card = document.createElement('div');
+        card.className = 'slide-card' + (isEditing ? ' editing' : '');
+        card.dataset.index = idx;
+
+        card.innerHTML = `
+          <div class="slide-card-header">
+            <span class="num-badge">Slide ${pad2(slide.number)} / ${pad2(slide.total)}</span>
+            <div class="card-actions">
+              <button class="btn-slide-copy" data-idx="${idx}" type="button">Copy</button>
+              <button class="btn-slide-dl" data-idx="${idx}" type="button">HD</button>
+            </div>
+          </div>
+          <div class="slide-frame" id="frame-${idx}"></div>
+        `;
+
+        const frame = card.querySelector('.slide-frame');
+        frame.innerHTML = renderSlideHTML(slide, idx);
+        slidesGrid.appendChild(card);
+
+        card.querySelector('.btn-slide-copy').addEventListener('click', () => copySlideText(slides[idx]));
+        card.querySelector('.btn-slide-dl').addEventListener('click', async (e) => {
+          const btn = e.currentTarget; btn.disabled = true; btn.textContent = '...';
+          try { await downloadSlide(idx); } finally { btn.disabled = false; btn.textContent = 'HD'; }
+        });
+
+        requestAnimationFrame(() => scaleSlideFrame(frame));
+      });
+
+      if (isEditing) {
+        slidesGrid.querySelectorAll('[data-field]').forEach(el => {
+          el.addEventListener('input', () => {
+            const idx = Number(el.closest('.slide-card').dataset.index);
+            slides[idx][el.dataset.field] = el.innerText.trim();
+          });
+        });
+      }
+    }
+
+    function renderSlideHTML(slide, idx) {
+      const editable = isEditing ? 'contenteditable="true" spellcheck="false"' : '';
+      const cat = slide.category || DEFAULT_CATEGORY;
+
+      const bgImg = slide.image
+        ? `<img class="bg-img" src="${escapeHtml(proxifyImage(slide.image))}" crossorigin="anonymous" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"><div class="bg-fallback" style="display:none;">${escapeHtml(cat.name)}</div>`
+        : `<div class="bg-fallback">${escapeHtml(cat.name)}</div>`;
+
+      const topBar = `
+        <div class="top-bar">
+          <div class="brand-badge">${escapeHtml(slide.source || 'TECH NEWS')}</div>
+          <div class="slide-num">${pad2(slide.number)} / ${pad2(slide.total)}</div>
+        </div>`;
+
+      if (slide.type === 'cover') {
+        const hookLen = slide.hook.length;
+        const hookClass = hookLen > 80 ? 'size-very-long' : hookLen > 55 ? 'size-long' : 'size-normal';
+        return `
+          <div class="slide slide-cover">
+            ${bgImg}<div class="bg-overlay"></div>${topBar}
+            <div class="cover-content">
+              <div class="category-pill" style="--cat-color: ${cat.color}">${escapeHtml(cat.name)}</div>
+              <h1 class="hook-title ${hookClass}" data-field="hook" ${editable}>${escapeHtml(slide.hook)}</h1>
+              <p class="cover-subtitle" data-field="subtitle" ${editable}>${escapeHtml(slide.subtitle)}</p>
+            </div>
+            <div class="footer-bar">
+              <div class="footer-source">${escapeHtml(slide.date)}</div>
+              <div class="swipe-cta">Swipe →</div>
+            </div>
+          </div>`;
+      }
+
+      if (slide.type === 'content') {
+        const len = slide.body.length;
+        const bodyClass = len > 450 ? 'very-dense' : len > 300 ? 'dense' : '';
+        const pagDots = slides.map((_, i) => `<div class="pdot ${i === idx ? 'active' : ''}"></div>`).join('');
+        return `
+          <div class="slide slide-content">
+            ${bgImg}<div class="bg-overlay"></div><div class="big-number">${pad2(slide.number)}</div>${topBar}
+            <div class="content-area">
+              <div class="content-label">${escapeHtml(slide.label)}</div>
+              <div class="content-body ${bodyClass}" data-field="body" ${editable}>${escapeHtml(slide.body)}</div>
+            </div>
+            <div class="footer-bar">
+              <div class="pag-dots">${pagDots}</div>
+              <div class="footer-source">${escapeHtml(slide.sourceUrl || '')}</div>
+            </div>
+          </div>`;
+      }
+
+      return `
+        <div class="slide slide-closing">
+          ${bgImg}<div class="bg-overlay"></div>${topBar}
+          <div class="closing-content">
+            <div class="category-pill" style="--cat-color: ${cat.color}">${escapeHtml(cat.name)}</div>
+            <h2 class="closing-title" data-field="closingTitle" ${editable}>${escapeHtml(slide.closingTitle)}</h2>
+            <p class="closing-text" data-field="closingText" ${editable}>${escapeHtml(slide.closingText)}</p>
+            <a href="${escapeHtml(slide.link)}" target="_blank" rel="noopener noreferrer" class="cta-button">Baca Artikel</a>
+          </div>
+          <div class="footer-bar">
+            <div class="footer-source">${escapeHtml(slide.sourceUrl || slide.source)}</div>
+            <div class="footer-source">${pad2(slide.number)}</div>
+          </div>
+        </div>`;
+    }
+
+    function scaleSlideFrame(frame) {
+      const slideEl = frame.querySelector('.slide');
+      if (!slideEl) return;
+      const w = frame.clientWidth;
+      if (!w) return;
+      slideEl.style.transform = `scale(${w / 1080})`;
+      frame.style.height = `${1350 * (w / 1080)}px`;
+    }
+
+    function layoutAllSlides() { document.querySelectorAll('.slide-frame').forEach(scaleSlideFrame); }
+    window.addEventListener('resize', () => { clearTimeout(window._resizeT); window._resizeT = setTimeout(layoutAllSlides, 100); });
+
+    // ========== EXPORT & DOWNLOAD ==========
+    async function renderSlideToCanvas(index) {
+      const card = slidesGrid.querySelector(`.slide-card[data-index="${index}"]`);
+      const slideEl = card.querySelector('.slide');
+      
+      const clone = slideEl.cloneNode(true);
+      clone.style.transform = 'none'; clone.style.position = 'relative';
+      clone.style.width = '1080px'; clone.style.height = '1350px';
+      clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+
+      exportStage.innerHTML = ''; exportStage.appendChild(clone);
+
+      const imgs = Array.from(clone.querySelectorAll('img'));
+      await Promise.all(imgs.map(img => new Promise(res => {
+        if (img.complete) return res();
+        const t = setTimeout(res, 3000);
+        img.onload = () => { clearTimeout(t); res(); };
+        img.onerror = () => { clearTimeout(t); res(); };
+      })));
+      await new Promise(r => setTimeout(r, 300));
+
+      const canvas = await html2canvas(clone, {
+        scale: EXPORT_SCALE, useCORS: true, allowTaint: false, backgroundColor: '#ffffff',
+        width: 1080, height: 1350, logging: false, imageTimeout: 15000
+      });
+
+      exportStage.innerHTML = ''; return canvas;
+    }
+
+    async function downloadSlide(index) {
+      if (isExporting) return; isExporting = true; cancelExport = false;
+      showExportOverlay(`Membuat Slide ${index + 1} HD...`);
+      try {
+        setProgress(0, 1);
+        const canvas = await renderSlideToCanvas(index);
+        setProgress(1, 1);
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `slide-${pad2(index + 1)}.png`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        hideExportOverlay(); showToast(`Slide ${index + 1} berhasil diunduh`);
+      } catch (e) {
+        console.error(e); hideExportOverlay(); showToast('Gagal membuat slide HD', 'error');
+      } finally { isExporting = false; }
+    }
+
+    async function downloadAllSlides() {
+      if (isExporting) return; isExporting = true; cancelExport = false;
+      showExportOverlay('Membuat semua slide HD...');
+      try {
+        const zip = new JSZip(); const total = slides.length;
+        for (let i = 0; i < total; i++) {
+          if (cancelExport) { hideExportOverlay(); showToast('Dibatalkan', 'error'); isExporting = false; return; }
+          setProgress(i, total, `Membuat slide ${i + 1} dari ${total}...`);
+          const canvas = await renderSlideToCanvas(i);
+          const blob = await new Promise(r => canvas.toBlob(r, 'image/png', 1.0));
+          zip.file(`slide-${pad2(i + 1)}.png`, blob);
+          setProgress(i + 1, total, `Slide ${i + 1} selesai`);
+          await new Promise(r => setTimeout(r, 80));
+        }
+        setProgress(total, total, 'Mengemas ZIP...');
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a'); a.href = url; a.download = `carousel-${Date.now()}.zip`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+        hideExportOverlay(); showToast(`${total} slide berhasil diunduh`);
+      } catch (e) {
+        console.error(e); hideExportOverlay(); showToast('Gagal membuat ZIP', 'error');
+      } finally { isExporting = false; }
+    }
+
+    function showExportOverlay(title) { exportTitle.textContent = title; exportOverlay.classList.add('show'); exportProgress.style.width = '0%'; exportLabel.textContent = '0 / 0'; }
+    function hideExportOverlay() { exportOverlay.classList.remove('show'); }
+    function setProgress(done, total, label) {
+      exportProgress.style.width = (total > 0 ? (done / total) * 100 : 0) + '%';
+      exportLabel.textContent = label || `${done} / ${total}`;
+    }
+
+    function copySlideText(slide) {
+      let text = '';
+      if (slide.type === 'cover') text = `${slide.hook}\n\n${slide.subtitle}\n\n${slide.source} · ${slide.date}\n${slide.number}/${slide.total}`;
+      else if (slide.type === 'closing') text = `${slide.number}/${slide.total} · ${slide.closingTitle}\n\n${slide.closingText}\n\n${slide.link}\nSumber: ${slide.source}`;
+      else text = `${slide.number}/${slide.total} · ${slide.label}\n\n${slide.body}`;
+      navigator.clipboard.writeText(text).then(() => showToast('Teks disalin ke clipboard'), () => showToast('Gagal menyalin', 'error'));
+    }
+
+    // ========== EVENTS ==========
+    searchBtn.addEventListener('click', performSearch);
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
+    
+    editBtn.addEventListener('click', () => {
+      if (slides.length === 0) return;
+      isEditing = !isEditing;
+      editBtn.classList.toggle('active', isEditing);
+      editBtn.textContent = isEditing ? 'Selesai Edit' : 'Edit Teks';
+      if (isEditing) editBtn.style.background = 'var(--text)', editBtn.style.color = '#fff';
+      else editBtn.style.background = '', editBtn.style.color = '';
+      renderSlides();
+      if (isEditing) showToast('Klik teks pada slide untuk mulai mengedit', 'success');
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (!activeArticle) return;
+      if (!confirm('Kembalikan ke teks asli? Semua perubahan akan hilang.')) return;
+      generateDraft(activeArticle, null);
+    });
+
+    downloadAllBtn.addEventListener('click', downloadAllSlides);
+    cancelExportBtn.addEventListener('click', () => { cancelExport = true; hideExportOverlay(); });
+
+    window.addEventListener('load', () => searchInput.focus());
+
+  })();
+  </script>
+</body>
+</html>
